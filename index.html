@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebToApp Builder — Ultimate Edition</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: #f0f4f8; color: #1e293b; padding: 40px 20px; }
+  .wrap { max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 2.2rem; text-align: center; margin-bottom: 10px; color: #0f172a; }
+  .sub { text-align: center; color: #64748b; margin-bottom: 30px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 1.1rem; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; color: #334155; }
+  label { display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin: 12px 0 6px; }
+  input[type=text], input[type=url], textarea, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.95rem; background: #f8fafc; transition: border 0.2s; }
+  input:focus, textarea:focus { outline: none; border-color: #3b82f6; background: #fff; }
+  textarea { min-height: 120px; font-family: monospace; font-size: 0.85rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+  .mode-tabs { display: flex; gap: 10px; margin-bottom: 20px; background: #e2e8f0; padding: 6px; border-radius: 10px; }
+  .mode-tabs button { flex: 1; padding: 12px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-weight: 600; color: #64748b; transition: 0.2s; }
+  .mode-tabs button.active { background: #fff; color: #3b82f6; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .mode-panel { display: none; }
+  .mode-panel.active { display: block; }
+  #buildBtn { width: 100%; padding: 18px; background: #10b981; color: #fff; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+  #buildBtn:hover { background: #059669; }
+  input[type=file] { padding: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; }
+  input[type=color] { padding: 0; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; height: 46px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ultimate Builder</h1>
+  <p class="sub">Flawless generation for professional Android apps.</p>
+
+  <div class="card">
+    <h2>1. App Content</h2>
+    <div class="mode-tabs">
+      <button class="active" data-mode="html">Offline HTML (Recommended)</button>
+      <button data-mode="url">Website URL</button>
+    </div>
+    <div class="mode-panel active" id="panelHtml">
+      <label>Paste HTML Content</label>
+      <textarea id="htmlContent" placeholder="Paste your complete HTML code here..."></textarea>
+    </div>
+    <div class="mode-panel" id="panelUrl">
+      <label>Website URL</label>
+      <input type="url" id="siteUrl" value="https://example.com">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. App Identity</h2>
+    <div class="two-col">
+      <div>
+        <label>App Name</label>
+        <input type="text" id="appName" value="My App">
+      </div>
+      <div>
+        <label>Package ID (e.g. com.yourname.app)</label>
+        <input type="text" id="pkgName" value="com.example.myapp">
+      </div>
+    </div>
+    
+    <label>App Icon (PNG/JPG)</label>
+    <input type="file" id="iconFile" accept="image/png, image/jpeg">
+  </div>
+
+  <div class="card">
+    <h2>3. App Behavior</h2>
+    <div class="three-col">
+      <div>
+        <label>Orientation</label>
+        <select id="orientation">
+          <option value="portrait">Portrait Only</option>
+          <option value="unspecified">Auto Rotate</option>
+        </select>
+      </div>
+      <div>
+        <label>Fullscreen</label>
+        <select id="fullscreen">
+          <option value="true">Hide Status Bar</option>
+          <option value="false">Show Status Bar</option>
+        </select>
+      </div>
+      <div>
+        <label>Internet Access</label>
+        <select id="internetPerm">
+          <option value="true">Required</option>
+          <option value="false">Offline Only</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>4. Generate</h2>
+    <button id="buildBtn">Download Android Project ZIP</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  let mode = 'html'; // Default to HTML now!
+  
+  document.querySelectorAll('.mode-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(mode === 'url' ? 'panelUrl' : 'panelHtml').classList.add('active');
+    });
+  });
+
+  function crc32(bytes) {
+    let c, crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      c = (crc ^ bytes[i]) & 0xFF;
+      for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1;
+      crc = (crc >>> 8) ^ c;
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function makeZip(files) {
+    const encoder = new TextEncoder();
+    const chunks = [];
+    const central = [];
+    let offset = 0;
+
+    files.forEach(f => {
+      const nameBytes = encoder.encode(f.name);
+      const crc = crc32(f.data);
+      const size = f.data.length;
+
+      const local = new Uint8Array(30 + nameBytes.length);
+      const dv = new DataView(local.buffer);
+      dv.setUint32(0, 0x04034b50, true);
+      dv.setUint16(4, 20, true);
+      dv.setUint16(6, 0, true);
+      dv.setUint16(8, 0, true);
+      dv.setUint32(14, crc, true);
+      dv.setUint32(18, size, true);
+      dv.setUint32(22, size, true);
+      dv.setUint16(26, nameBytes.length, true);
+      local.set(nameBytes, 30);
+      chunks.push(local, f.data);
+
+      const cen = new Uint8Array(46 + nameBytes.length);
+      const cv = new DataView(cen.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint32(42, offset, true);
+      cen.set(nameBytes, 46);
+      central.push(cen);
+      offset += local.length + size;
+    });
+
+    const centralSize = central.reduce((a, b) => a + b.length, 0);
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, offset, true);
+
+    return new Blob([...chunks, ...central, end], { type: 'application/zip' });
+  }
+
+  document.getElementById('buildBtn').addEventListener('click', async () => {
+    try {
+      const name = document.getElementById('appName').value.trim() || 'My App';
+      const pkg = document.getElementById('pkgName').value.trim() || 'com.example.myapp';
+      const orientation = document.getElementById('orientation').value;
+      const isFullscreen = document.getElementById('fullscreen').value;
+      const needsInternet = document.getElementById('internetPerm').value;
+
+      // --- SAFETY CHECKS ---
+      if (mode === 'html') {
+        const htmlCode = document.getElementById('htmlContent').value.trim();
+        if (!htmlCode) {
+          return alert("❌ ERROR: You selected 'Offline HTML' but pasted no code!\n\nPlease paste your HTML code or switch to the URL tab.");
+        }
+      }
+
+      const iconFileInput = document.getElementById('iconFile');
+      let iconBytes = null;
+      if (iconFileInput.files.length > 0) {
+        iconBytes = new Uint8Array(await iconFileInput.files[0].arrayBuffer());
+      }
+
+      // Confirm what is being built to the user
+      alert(`✅ Generating Project:\nApp: ${name}\nPackage: ${pkg}\nContent: ${mode === 'html' ? 'Bundled Offline HTML' : 'Live Website URL'}`);
+
+      const encoder = new TextEncoder();
+      const files = [];
+      const add = (path, content) => files.push({ name: path, data: encoder.encode(content) });
+      const addBinary = (path, data) => files.push({ name: path, data: data });
+
+      // 1. WORKFLOW
+      add('.github/workflows/build.yml', `name: Build APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with: { distribution: 'temurin', java-version: '17' }
+      - uses: android-actions/setup-android@v4.0.4
+      - name: Build
+        run: |
+          cd android
+          gradle wrapper --gradle-version 8.4
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+`);
+
+      // 2. GRADLE WRAPPER
+      add('android/gradle/wrapper/gradle-wrapper.properties', `distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\\://services.gradle.org/distributions/gradle-8.4-bin.zip
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+`);
+
+      // 3. SETTINGS.GRADLE
+      add('android/settings.gradle', `rootProject.name = "${name.replace(/[^a-zA-Z0-9]/g, '')}"\ninclude ':app'\n`);
+
+      // 4. ROOT BUILD.GRADLE
+      add('android/build.gradle', `buildscript {
+    repositories { google(); mavenCentral() }
+    dependencies { classpath 'com.android.tools.build:gradle:8.2.0' }
+}
+allprojects { repositories { google(); mavenCentral() } }
+`);
+
+      // 5. GRADLE.PROPERTIES
+      add('android/gradle.properties', `android.useAndroidX=true\norg.gradle.jvmargs=-Xmx2048m\n`);
+
+      // 6. APP BUILD.GRADLE
+      // Added a dynamic version code based on time so Android NEVER caches the app incorrectly
+      const versionCode = Math.floor(Date.now() / 1000);
+      add('android/app/build.gradle', `plugins { id 'com.android.application' }
+android {
+    namespace '${pkg}'
+    compileSdk 34
+    defaultConfig {
+        applicationId "${pkg}"
+        minSdk 21
+        targetSdk 34
+        versionCode ${versionCode}
+        versionName "1.0"
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
+`);
+
+      // 7. ANDROID MANIFEST
+      const iconString = iconBytes ? "@drawable/custom_icon" : "@mipmap/ic_launcher";
+      const internetTag = needsInternet === 'true' ? `<uses-permission android:name="android.permission.INTERNET"/>` : '';
+
+      add('android/app/src/main/AndroidManifest.xml', `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    ${internetTag}
+    <application 
+        android:label="${name}" 
+        android:theme="@style/AppTheme" 
+        android:usesCleartextTraffic="true"
+        android:icon="${iconString}">
+        <activity android:name=".MainActivity" 
+            android:exported="true"
+            android:screenOrientation="${orientation}">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+`);
+
+      // 8. STYLES.XML
+      add('android/app/src/main/res/values/styles.xml', `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">#ffffff</item>
+    </style>
+</resources>
+`);
+
+      // 9. MAIN ACTIVITY
+      const loadLine = mode === 'url' 
+        ? `webView.loadUrl("${document.getElementById('siteUrl').value}");`
+        : `webView.loadUrl("file:///android_asset/index.html");`;
+      
+      const fullscreenLogic = isFullscreen === 'true' 
+        ? `getWindow().setFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN, android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN);`
+        : '';
+
+      add('android/app/src/main/java/' + pkg.replace(/\./g, '/') + '/MainActivity.java', `package ${pkg};
+import android.os.Bundle;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+    private WebView webView;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        ${fullscreenLogic}
+        webView = new WebView(this);
+        setContentView(webView);
+        WebSettings s = webView.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
+        webView.setWebViewClient(new WebViewClient());
+        ${loadLine}
+    }
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) webView.goBack();
+        else super.onBackPressed();
+    }
+}
+`);
+
+      // 10. HTML ASSET (If in offline mode)
+      if (mode === 'html') {
+        add('android/app/src/main/assets/index.html', document.getElementById('htmlContent').value);
+      }
+
+      // 11. CUSTOM ICON
+      if (iconBytes) {
+        addBinary('android/app/src/main/res/drawable/custom_icon.png', iconBytes);
+      }
+
+      // 12. README
+      add('README.md', `# ${name}\n\nBuilt via WebToApp.\n\nGo to the Actions tab to download your APK.`);
+
+      // Generate and download
+      const blob = makeZip(files);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'android-project.zip';
+      a.click();
+    } catch (err) {
+      alert("Error generating project: " + err.message);
+    }
+  });
+})();
+</script>
+</body>
+</html>
