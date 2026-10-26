@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebToApp Builder — GitHub Edition</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #f7f9fc 0%, #eef2f8 100%);
+    color: #1a2233;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 {
+    font-size: 2.2rem;
+    text-align: center;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, #2b6cff, #7a3cff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sub { text-align: center; color: #5a6780; margin-bottom: 36px; font-size: 1rem; }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(20,40,90,0.08);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #2b3a55; }
+
+  label { display: block; font-size: .85rem; font-weight: 600; color: #4a5570; margin: 14px 0 6px; }
+  input[type=text], input[type=url], textarea, select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #d4dbe8;
+    border-radius: 9px;
+    font-size: .95rem;
+    font-family: inherit;
+    transition: border-color .15s;
+    background: #fafbfd;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #2b6cff;
+    background: #fff;
+  }
+  textarea { resize: vertical; min-height: 90px; font-family: "SF Mono", Consolas, monospace; font-size: .82rem; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .two-col { grid-template-columns: 1fr; } }
+
+  .mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    background: #eef2f8;
+    padding: 5px;
+    border-radius: 11px;
+  }
+  .mode-tabs button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: .9rem;
+    color: #5a6780;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .mode-tabs button.active {
+    background: #fff;
+    color: #2b6cff;
+    box-shadow: 0 2px 8px rgba(43,108,255,0.15);
+  }
+
+  .mode-panel { display: none; }
+  .mode-panel.active { display: block; }
+
+  #buildBtn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #2b6cff, #7a3cff);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 10px;
+    transition: transform .1s, box-shadow .15s;
+    box-shadow: 0 4px 16px rgba(43,108,255,0.3);
+  }
+  #buildBtn:hover { box-shadow: 0 6px 22px rgba(43,108,255,0.4); }
+  #buildBtn:active { transform: scale(.98); }
+  #buildBtn:disabled { opacity: .6; cursor: not-allowed; }
+
+  .preview {
+    margin-top: 20px;
+    padding: 18px;
+    background: #f0f4fb;
+    border-radius: 12px;
+    font-size: .85rem;
+    color: #4a5570;
+    display: none;
+  }
+  .preview.show { display: block; }
+  .preview code { background: #fff; padding: 2px 6px; border-radius: 4px; font-size: .8rem; }
+
+  .steps { counter-reset: step; list-style: none; margin-top: 8px; }
+  .steps li {
+    counter-increment: step;
+    padding: 9px 0 9px 34px;
+    position: relative;
+    font-size: .88rem;
+    color: #4a5570;
+    line-height: 1.5;
+    border-bottom: 1px solid #eef2f8;
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: 9px;
+    width: 22px; height: 22px;
+    background: #2b6cff;
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem;
+    font-weight: 700;
+  }
+
+  .note {
+    background: #fff8e6;
+    border-left: 4px solid #ffb020;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: .82rem;
+    color: #6b5320;
+    margin-top: 16px;
+    line-height: 1.55;
+  }
+
+  #status {
+    margin-top: 14px;
+    font-size: .85rem;
+    text-align: center;
+    min-height: 20px;
+    color: #2b6cff;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>WebToApp Builder</h1>
+  <p class="sub">Turn any website or HTML file into a GitHub-built Android APK — no server required.</p>
+
+  <div class="card">
+    <h2>1. What are you packaging?</h2>
+    <div class="mode-tabs">
+      <button class="active" data-mode="url">🌐 A Website URL</button>
+      <button data-mode="html">📄 My HTML File</button>
+    </div>
+
+    <div class="mode-panel active" id="panelUrl">
+      <label for="siteUrl">Website URL</label>
+      <input type="url" id="siteUrl" placeholder="https://example.com" value="https://example.com">
+    </div>
+
+    <div class="mode-panel" id="panelHtml">
+      <label for="htmlContent">Paste your HTML (must be a single file, self-contained)</label>
+      <textarea id="htmlContent" placeholder="&lt;!DOCTYPE html&gt;&#10;&lt;html&gt;...&lt;/html&gt;"></textarea>
+      <div class="note">The HTML is embedded as an asset inside the APK and loaded locally — it works offline.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. App Identity</h2>
+    <div class="two-col">
+      <div>
+        <label for="appName">App Name</label>
+        <input type="text" id="appName" value="My App" maxlength="30">
+      </div>
+      <div>
+        <label for="pkgName">Package ID (reverse-domain)</label>
+        <input type="text" id="pkgName" value="com.example.myapp">
+      </div>
+    </div>
+    <div class="two-col">
+      <div>
+        <label for="appVersion">Version</label>
+        <input type="text" id="appVersion" value="1.0">
+      </div>
+      <div>
+        <label for="themeColor">Theme Color (optional)</label>
+        <input type="color" id="themeColor" value="#2b6cff" style="padding:4px;height:44px">
+      </div>
+    </div>
+    <label for="iconUrl">App Icon URL (PNG, 512×512, optional)</label>
+    <input type="url" id="iconUrl" placeholder="https://.../icon.png">
+  </div>
+
+  <div class="card">
+    <h2>3. Generate the project</h2>
+    <button id="buildBtn">⬇ Download Android Project (.zip)</button>
+    <div id="status"></div>
+
+    <div class="preview" id="preview">
+      <strong>Next steps (do this after the zip downloads):</strong>
+      <ol class="steps">
+        <li>Go to <code>github.com/new</code> and create an empty repository (do not initialize).</li>
+        <li>Unzip the downloaded file on your PC.</li>
+        <li>Push it to the repo: <code>git init &amp;&amp; git add . &amp;&amp; git commit -m "init" &amp;&amp; git push</code></li>
+        <li>Open the repo → <strong>Actions</strong> tab → the <code>Build APK</code> workflow runs automatically.</li>
+        <li>When green ✅, click the run → download <code>app-debug.apk</code> from <strong>Artifacts</strong>.</li>
+        <li>Transfer the APK to your phone and install (enable "Unknown sources").</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Why the APK is built by GitHub, not by this page</h2>
+    <p style="font-size:.9rem;line-height:1.65;color:#4a5570;">
+      Turning HTML into an APK requires the Android SDK and Gradle — a ~1 GB toolchain that
+      cannot run inside a webpage. This page generates a complete project containing a
+      <strong>GitHub Actions workflow</strong>. When you push it, GitHub's free build servers
+      run Gradle and hand you back the finished APK. Same end result as WebIntoApp, but your
+      build runs on GitHub's cloud, with your code, and no third-party service holds your app.
+    </p>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  let mode = 'url';
+
+  // Tab switching
+  document.querySelectorAll('.mode-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(mode === 'url' ? 'panelUrl' : 'panelHtml').classList.add('active');
+    });
+  });
+
+  // ---- Minimal ZIP writer (store only, no compression) ----
+  function crc32(bytes) {
+    let c, crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      c = (crc ^ bytes[i]) & 0xFF;
+      for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1;
+      crc = (crc >>> 8) ^ c;
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function makeZip(files) {
+    // files: [{name, data: Uint8Array}]
+    const encoder = new TextEncoder();
+    const chunks = [];
+    const central = [];
+    let offset = 0;
+
+    files.forEach(f => {
+      const nameBytes = encoder.encode(f.name);
+      const crc = crc32(f.data);
+      const size = f.data.length;
+
+      // Local file header
+      const local = new Uint8Array(30 + nameBytes.length);
+      const dv = new DataView(local.buffer);
+      dv.setUint32(0, 0x04034b50, true);
+      dv.setUint16(4, 20, true);       // version needed
+      dv.setUint16(6, 0, true);        // flags
+      dv.setUint16(8, 0, true);        // method: store
+      dv.setUint16(10, 0, true);       // time
+      dv.setUint16(12, 0, true);       // date
+      dv.setUint32(14, crc, true);
+      dv.setUint32(18, size, true);
+      dv.setUint32(22, size, true);
+      dv.setUint16(26, nameBytes.length, true);
+      dv.setUint16(28, 0, true);
+      local.set(nameBytes, 30);
+
+      chunks.push(local, f.data);
+
+      // Central directory record
+      const cen = new Uint8Array(46 + nameBytes.length);
+      const cv = new DataView(cen.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);       // version made by
+      cv.setUint16(6, 20, true);       // version needed
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, 0, true);
+      cv.setUint16(14, 0, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      cen.set(nameBytes, 46);
+      central.push(cen);
+
+      offset += local.length + size;
+    });
+
+    const centralSize = central.reduce((a, b) => a + b.length, 0);
+    const centralOffset = offset;
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, centralOffset, true);
+
+    return new Blob([...chunks, ...central, end], { type: 'application/zip' });
+  }
+
+  // ---- Project template generator ----
+  function buildProject(cfg) {
+    const encoder = new TextEncoder();
+    const files = [];
+    const add = (name, text) => files.push({ name, data: encoder.encode(text) });
+
+    // 1. Build workflow
+    add('.github/workflows/build.yml', `name: Build APK
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+`);
+
+    // 2. Android manifest
+    add('android/app/src/main/AndroidManifest.xml', `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="${cfg.pkg}">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="${escapeXml(cfg.name)}"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+`);
+
+    // 3. MainActivity
+    const isUrl = cfg.mode === 'url';
+    const loadLine = isUrl
+      ? `webView.loadUrl("${escapeJs(cfg.url)}");`
+      : `webView.loadUrl("file:///android_asset/index.html");`;
+
+    add('android/app/src/main/java/' + cfg.pkg.replace(/\./g, '/') + '/MainActivity.java', `package ${cfg.pkg};
+
+import android.os.Bundle;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+    private WebView webView;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        webView = new WebView(this);
+        setContentView(webView);
+
+        WebSettings s = webView.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
+        s.setAllowFileAccess(true);
+
+        webView.setWebViewClient(new WebViewClient());
+        ${loadLine}
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) webView.goBack();
+        else super.onBackPressed();
+    }
+}
+`);
+
+    // 4. styles.xml
+    add('android/app/src/main/res/values/styles.xml', `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">${cfg.theme}</item>
+    </style>
+</resources>
+`);
+
+    // 5. assets/index.html (if html mode)
+    if (!isUrl) {
+      add('android/app/src/main/assets/index.html', cfg.html);
+    }
+
+    // 6. build.gradle (root)
+    add('android/build.gradle', `buildscript {
+    repositories { google(); mavenCentral() }
+    dependencies { classpath 'com.android.tools.build:gradle:8.2.0' }
+}
+allprojects { repositories { google(); mavenCentral() } }
+`);
+
+    // 7. app build.gradle
+    add('android/app/build.gradle', `plugins { id 'com.android.application' }
+android {
+    namespace '${cfg.pkg}'
+    compileSdk 34
+    defaultConfig {
+        applicationId "${cfg.pkg}"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "${cfg.version}"
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+}
+`);
+
+    // 8. gradle.properties
+    add('android/gradle.properties', `android.useAndroidX=true
+org.gradle.jvmargs=-Xmx2048m
+`);
+
+    // 9. gradle wrapper props
+    add('android/gradle/wrapper/gradle-wrapper.properties', `distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\\://services.gradle.org/distributions/gradle-8.4-bin.zip
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+`);
+
+    // 10. README
+    add('README.md', `# ${cfg.name}
+
+Generated by WebToApp Builder (GitHub Edition).
+
+## Build the APK
+1. Push this repo to GitHub.
+2. Go to Actions → **Build APK** → run it.
+3. Download \`app-debug.apk\` from the run's Artifacts.
+
+## App details
+- Package: \`${cfg.pkg}\`
+- Version: \`${cfg.version}\`
+- Mode: ${isUrl ? 'Remote URL' : 'Bundled HTML'}
+- ${isUrl ? 'URL: `' + cfg.url + '`' : 'HTML embedded in `android/app/src/main/assets/index.html`'}
+`);
+
+    return makeZip(files);
+  }
+
+  function escapeXml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escapeJs(s) { return s.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n'); }
+
+  // ---- Build button ----
+  document.getElementById('buildBtn').addEventListener('click', () => {
+    const name = document.getElementById('appName').value.trim() || 'My App';
+    const pkg = document.getElementById('pkgName').value.trim() || 'com.example.myapp';
+    const version = document.getElementById('appVersion').value.trim() || '1.0';
+    const theme = document.getElementById('themeColor').value;
+
+    if (!/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/i.test(pkg)) {
+      alert('Package ID must look like com.example.myapp');
+      return;
+    }
+
+    let cfg;
+    if (mode === 'url') {
+      const url = document.getElementById('siteUrl').value.trim();
+      if (!/^https?:\/\//i.test(url)) { alert('URL must start with http:// or https://'); return; }
+      cfg = { mode: 'url', name, pkg, version, theme, url };
+    } else {
+      const html = document.getElementById('htmlContent').value;
+      if (!html.trim()) { alert('Paste your HTML first.'); return; }
+      cfg = { mode: 'html', name, pkg, version, theme, html };
+    }
+
+    const status = document.getElementById('status');
+    status.textContent = 'Generating project…';
+    document.getElementById('buildBtn').disabled = true;
+
+    try {
+      const blob = buildProject(cfg);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (pkg.split('.').pop() || 'app') + '-project.zip';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      status.textContent = '✅ Downloaded. Follow the next steps below.';
+      document.getElementById('preview').classList.add('show');
+    } catch (err) {
+      status.textContent = '❌ Error: ' + err.message;
+      console.error(err);
+    } finally {
+      document.getElementById('buildBtn').disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
